@@ -3,23 +3,34 @@
 /**
  * Vercel serverless entry point.
  *
- * Vercel runs this file as a Node function on every invocation (module scope
- * executes once per cold start). It:
- *   1. initializes the Firebase Admin SDK,
- *   2. fires the one-shot readiness probe in the background,
- *   3. builds the shared Express app (same app the `node server.js` entry uses),
- *   4. exports it - Vercel's @vercel/node runtime accepts an Express app
- *      directly as the request handler.
+ * Runs once per cold start:
+ *   1. initialize the Firebase Admin SDK (+ background readiness probe),
+ *   2. build the shared Express app (same one `node server.js` uses),
+ *   3. export it - @vercel/node accepts an Express app as the handler.
  *
- * Sessions are cookie-based (cookie-session) because serverless instances
- * share no memory; see server/app.js.
+ * If booting throws (missing module, bad bundle, malformed env JSON...), we
+ * export a fallback handler that PRINTS the real error instead of the opaque
+ * Vercel "FUNCTION_INVOCATION_FAILED" page, so the problem is diagnosable
+ * from the deployment URL itself.
  */
 
-const fb = require('../server/config/firebase');
-fb.init();
-fb.verify().catch(() => { /* app.js surfaces the reason on the next data call */ });
+let handler;
 
-const { createApp } = require('../server/app');
-const app = createApp();
+try {
+  const fb = require('../server/config/firebase');
+  fb.init();
+  fb.verify().catch(() => { /* data calls surface the reason later */ });
 
-module.exports = app;
+  const { createApp } = require('../server/app');
+  handler = createApp();
+} catch (err) {
+  const detail = (err && err.stack) ? err.stack : String(err);
+  console.error('[blindspot] BOOT FAILURE on Vercel:\n' + detail);
+  handler = function bootFailure(req, res) {
+    res.statusCode = 500;
+    res.setHeader('content-type', 'text/plain; charset=utf-8');
+    res.end('Blindspot failed to boot on Vercel:\n\n' + String(detail).slice(0, 4000));
+  };
+}
+
+module.exports = handler;
