@@ -43,15 +43,15 @@ function requireRole(...roles) {
       const fsDb = fb.firestore();
       const snap = await fsDb.collection('employees').doc(me.uid).get();
       if (!snap.exists) {
-        req.session.destroy(() => isApi(req) ? res.status(403).json({ message: 'Employee profile missing' })
-          : res.redirect('/login'));
-        return;
+        req.session = null;
+        return isApi(req) ? res.status(403).json({ message: 'Employee profile missing' })
+          : res.redirect('/login');
       }
       const emp = snap.data();
       if (emp.enabled !== true) {
-        req.session.destroy(() => isApi(req) ? res.status(403).json({ message: 'Account is disabled' })
-          : res.redirect('/login?reason=disabled'));
-        return;
+        req.session = null;
+        return isApi(req) ? res.status(403).json({ message: 'Account is disabled' })
+          : res.redirect('/login?reason=disabled');
       }
       if (roles.length && !roles.includes(emp.role)) {
         if (isApi(req)) {

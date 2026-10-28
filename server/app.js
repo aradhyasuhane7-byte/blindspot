@@ -6,7 +6,7 @@
  */
 const path = require('path');
 const express = require('express');
-const session = require('express-session');
+const cookieSession = require('cookie-session');
 const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
 
@@ -55,18 +55,16 @@ function createApp() {
   app.use(express.urlencoded({ extended: false, limit: '256kb' }));
   app.use(cookieParser());
 
-  // Secure, server-side session. The login flow regenerates the id (fixation safe).
-  app.use(session({
+  // Cookie-based session (stateless: works on serverless platforms like
+  // Vercel, where in-memory stores would drop sessions between invocations).
+  // The login flow clears + rewrites the session (fixation safe).
+  app.use(cookieSession({
     name: 'blindspot.sid',
-    secret: process.env.SESSION_SECRET || 'blindspot-dev-secret-change-me',
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: process.env.SESSION_SECURE === 'true', // true behind HTTPS in production
-      maxAge: 1000 * 60 * 60 * 8, // 8h
-    },
+    keys: [process.env.SESSION_SECRET || 'blindspot-dev-secret-change-me'],
+    maxAge: 1000 * 60 * 60 * 8, // 8h
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.SESSION_SECURE === 'true', // true behind HTTPS in production
   }));
 
   app.use(csrfInit);

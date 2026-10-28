@@ -81,18 +81,18 @@ router.post('/auth/session-login', loginLimiter, async (req, res, next) => {
       return res.status(403).json({ message: 'Unknown employee role', code: 'BAD_ROLE' });
     }
 
-    // 3) secure session (regenerate against fixation; login moment stamped)
-    req.session.regenerate((err) => {
-      if (err) return next(err);
-      req.session.employee = {
+    // 3) fixation-safe session (drop any pre-auth state, then write fresh)
+    req.session = null;
+    req.session = {
+      employee: {
         uid: profile.uid,
         name: profile.name,
         email: profile.email,
         role: profile.role,
         loginAt: Date.now(),
-      };
-      req.session.save(() => res.json({ redirect: HOME[profile.role], name: profile.name, role: profile.role }));
-    });
+      },
+    };
+    res.json({ redirect: HOME[profile.role], name: profile.name, role: profile.role });
   } catch (err) {
     const code = err && err.code ? err.code : '';
     if (/ID-TOEKN-REVOKED|user-token-revoked/i.test(code)) {
@@ -107,15 +107,15 @@ router.post('/auth/session-login', loginLimiter, async (req, res, next) => {
 
 // GET also supported so workers can log out by URL; POST is the UI default.
 function logout(req, res) {
-  req.session.destroy(() => {
-    res.clearCookie('blindspot.sid');
-    res.clearCookie('bs_csrf');
-    if (req.accepts('json') && req.path === '/auth/logout') {
-      res.json({ redirect: '/login?reason=logout' });
-    } else {
-      res.redirect('/login?reason=logout');
-    }
-  });
+  req.session = null;
+  res.clearCookie('blindspot.sid');
+  res.clearCookie('blindspot.sid.sig');
+  res.clearCookie('bs_csrf');
+  if (req.accepts('json') && req.path === '/auth/logout') {
+    res.json({ redirect: '/login?reason=logout' });
+  } else {
+    res.redirect('/login?reason=logout');
+  }
 }
 
 router.post('/auth/logout', requireAuth, logout);
