@@ -19,11 +19,7 @@ logs/
 firebase-adminsdk*.json
 *.p12
 *.pem
-
-# The secrets/ folder is tracked on purpose - these negations override
-# the service-account/key patterns above for that folder only.
-!secrets/
-!secrets/**
+secrets/
 
 # OS noise
 .DS_Store

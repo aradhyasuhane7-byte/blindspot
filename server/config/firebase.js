@@ -23,9 +23,20 @@ let auth = null;
 
 function init() {
   const credPath = process.env.BLINDSPOT_FIREBASE_CREDENTIALS;
+  const credJson = process.env.FIREBASE_SERVICE_ACCOUNT; // full service-account JSON as a string (serverless)
   const options = { projectId: process.env.FB_PROJECT_ID || undefined };
   try {
-    if (credPath) {
+    if (credJson) {
+      // Priority 0: raw JSON passed through an environment variable
+      // (the standard approach on Vercel/Cloud Run where git-ignored files
+      // are not deployed). Accepts the JSON file's exact contents.
+      const serviceAccount = JSON.parse(credJson);
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+        projectId: serviceAccount.project_id || options.projectId,
+      });
+      console.log('[blindspot] Firebase Admin SDK credentials loaded from FIREBASE_SERVICE_ACCOUNT env var.');
+    } else if (credPath) {
       const abs = path.resolve(credPath);
       if (!fs.existsSync(abs)) {
         throw new Error(`Service account file not found: ${abs}`);
