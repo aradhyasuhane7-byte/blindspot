@@ -19,7 +19,15 @@ let handler;
 try {
   const fb = require('../server/config/firebase');
   fb.init();
-  fb.verify().catch(() => { /* data calls surface the reason later */ });
+  // Readiness probe with retries: a cold instance's first Firestore round
+  // trip can be slow; keep trying until it sticks (or give up quietly and
+  // let a fresh instance try again on the next cold start).
+  (async () => {
+    for (let attempt = 1; attempt <= 5; attempt++) {
+      if (await fb.verify()) return;
+      await new Promise((r) => setTimeout(r, 10000));
+    }
+  })();
 
   const { createApp } = require('../server/app');
   handler = createApp();

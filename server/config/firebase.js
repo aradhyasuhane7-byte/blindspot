@@ -51,6 +51,15 @@ function init() {
     }
     db = admin.firestore();
     auth = admin.auth();
+    // REST transport instead of gRPC: far friendlier to serverless cold
+    // starts (no long-lived channel setup) and the standard choice on
+    // platforms like Vercel/Cloud Run. Must be set before any db call.
+    try {
+      db.settings({ preferRest: true });
+      console.log('[blindspot] Firestore using REST transport (preferRest) for serverless-friendly cold starts.');
+    } catch (settingsErr) {
+      console.warn('[blindspot] Could not apply Firestore REST settings: ' + settingsErr.message);
+    }
     // Do NOT promise readiness yet: verify() below confirms credentials really work.
     console.log('[blindspot] Firebase Admin SDK SDK objects created. Project: '
       + (admin.app().options.projectId || '(unspecified)')
@@ -76,16 +85,22 @@ async function verify() {
   try {
     const probe = db.collection('employees').limit(1).get();
     const timeout = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Firestore probe timed out after 8000 ms')), 8000));
+      setTimeout(() => reject(new Error('Firestore probe timed out after 30000 ms')), 30000));
     await Promise.race([probe, timeout]);
     status = 'READY';
     console.log('[blindspot] Firestore connection verified. Data endpoints are live. '
       + 'Remember: Admin SDK bypasses Firestore rules - authorization is enforced server-side.');
     return true;
   } catch (err) {
-    status = 'ERROR';
     detail = 'Firestore is not reachable with the current credentials: '
       + (err && err.message ? String(err.message).split('\n')[0] : String(err));
+    if (/timed out/i.test(detail)) {
+      // Cold-start network setup can outlive one probe - allow a retry on
+      // the next attempt instead of marking this instance permanently dead.
+      console.warn('[blindspot] ' + detail + ' (will retry on next attempt)');
+      return false;
+    }
+    status = 'ERROR';
     console.warn('[blindspot] ' + detail);
     return false;
   }
