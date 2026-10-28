@@ -1,0 +1,80 @@
+<%- include('partials/head') %>
+<body class="app">
+  <%- include('partials/sidebar', { me: me, navKind: 'admin', active: 'reports' }) %>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="hamburger" id="hamburger" aria-label="Open menu" aria-controls="sidebar" aria-expanded="false">&#9776;</button>
+      <h1 class="topbar-title" id="page-title">Reports & Bottlenecks</h1>
+      <div class="topbar-actions"><span class="chip chip-blue">Administrator</span></div>
+    </header>
+
+    <main class="content">
+      <section class="card" aria-label="Report period">
+        <div class="range-row">
+          <button class="range-chip active" data-range="this-week" type="button">This Week</button>
+          <button class="range-chip" data-range="last-week" type="button">Last Week</button>
+          <button class="range-chip" data-range="this-month" type="button">This Month</button>
+          <button class="range-chip" data-range="last-month" type="button">Last Month</button>
+          <button class="range-chip" data-range="custom" type="button">Custom Date Range</button>
+          <span id="custom-dates" class="custom-dates" hidden>
+            <label class="field"><span class="label">From</span><input class="input" type="date" id="rep-from"></label>
+            <label class="field"><span class="label">To</span><input class="input" type="date" id="rep-to"></label>
+          </span>
+          <span class="spacer"></span>
+          <button class="btn btn-outline" id="csv-week" type="button">Download Weekly Report CSV</button>
+          <button class="btn btn-outline" id="csv-month" type="button">Download Monthly Report CSV</button>
+          <button class="btn btn-primary" id="csv-custom" type="button">Download Custom Date Range CSV</button>
+        </div>
+        <p class="muted" id="rep-label"></p>
+      </section>
+
+      <div class="notice warn" id="rep-insufficient" hidden></div>
+
+      <section class="summary-grid" id="rep-metrics" aria-label="Report metrics">
+        <div class="card stat"><span class="stat-dot neutral"></span><div><span class="stat-value" id="m-created">-</span><span class="stat-label">Packages created</span></div></div>
+        <div class="card stat"><span class="stat-dot delivered"></span><div><span class="stat-value" id="m-delivered">-</span><span class="stat-label">Packages delivered</span></div></div>
+        <div class="card stat"><span class="stat-dot progress"></span><div><span class="stat-value" id="m-active">-</span><span class="stat-label">Currently in progress</span></div></div>
+        <div class="card stat"><span class="stat-dot delayed"></span><div><span class="stat-value" id="m-delayed">-</span><span class="stat-label">Delayed packages</span></div></div>
+        <div class="card stat"><span class="stat-dot progress"></span><div><span class="stat-value" id="m-avg">-</span><span class="stat-label">Avg completion time (days)</span></div></div>
+        <div class="card stat"><span class="stat-dot pending"></span><div><span class="stat-value" id="m-slowest">-</span><span class="stat-label">Slowest stage (avg)</span></div></div>
+      </section>
+
+      <section class="chart-grid">
+        <div class="card"><div class="card-head"><h2 class="card-title">Average time at each stage (days)</h2></div><div class="chart-box"><canvas id="chart-stage-durations" height="240" aria-label="Bar chart of average stage durations" role="img"></canvas></div></div>
+        <div class="card"><div class="card-head"><h2 class="card-title">Delays by stage</h2></div><div class="chart-box"><canvas id="chart-delays" height="240" aria-label="Bar chart of packages delayed per stage" role="img"></canvas></div></div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2 class="card-title">Weekly / monthly trend</h2></div>
+        <div class="chart-box wide"><canvas id="chart-trend" height="150" aria-label="Line chart of created versus delivered packages" role="img"></canvas></div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2 class="card-title">Bottleneck analysis by stage</h2></div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr>
+              <th scope="col">Stage</th><th scope="col">Avg duration (days)</th>
+              <th scope="col">Packages delayed</th><th scope="col">Currently awaiting action</th><th scope="col">Note</th>
+            </tr></thead>
+            <tbody id="stage-rows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2 class="card-title">Common delay reasons</h2></div>
+        <ul class="reason-list" id="reason-list"></ul>
+        <p class="muted" id="no-reasons" hidden>No delay reasons recorded yet.</p>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast-stack" class="toast-stack" aria-live="polite"></div>
+
+  <script>window.__PAGE__ = 'reports';</script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+  <script src="/js/reports.js" defer></script>
+</body>
+</html>

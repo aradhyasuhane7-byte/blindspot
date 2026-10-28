@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Build/runtime output
+*.log
+logs/
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+
+# Secrets - never commit these
+.env
+.env.*
+!.env.example
+*service-account*.json
+*firebase-service-account*
+firebase-adminsdk*.json
+*.p12
+*.pem
+secrets/
+
+# OS noise
+.DS_Store
+Thumbs.db

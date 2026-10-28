@@ -1,0 +1,18 @@
+<header class="public-header">
+  <a class="brand" href="/">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <span class="brand-name">Blindspot</span>
+  </a>
+  <p class="brand-tag">See every delay. Control every stage.</p>
+  <div class="public-header-actions">
+    <% if (typeof me !== 'undefined' && me) { %>
+      <span class="chip"><%= me.name %></span>
+      <form method="post" action="/auth/logout" class="inline-form">
+        <input type="hidden" name="_csrf" value="<%= csrf %>">
+        <button class="btn btn-outline btn-sm" type="submit">Log out</button>
+      </form>
+    <% } else { %>
+      <a class="btn btn-primary btn-sm" href="/login">Employee Login</a>
+    <% } %>
+  </div>
+</header>

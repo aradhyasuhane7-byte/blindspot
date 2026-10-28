@@ -1,0 +1,16 @@
+<%- include('partials/head') %>
+<body class="public-page">
+  <%- include('partials/public-header', { me: typeof me !== 'undefined' ? me : null }) %>
+  <main class="container error-main">
+    <section class="card error-card">
+      <p class="error-code"><%= status %></p>
+      <h1><%= status === 403 ? 'Access denied' : status === 404 ? 'Page not found' : 'Something went wrong' %></h1>
+      <p class="muted"><%= message %></p>
+      <div class="error-actions">
+        <a class="btn btn-primary" href="/">Main Dashboard</a>
+        <a class="btn btn-outline" href="/login">Employee Login</a>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

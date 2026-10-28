@@ -1,0 +1,42 @@
+<aside class="sidebar" id="sidebar" aria-label="Main navigation">
+  <div class="sidebar-brand">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <div>
+      <span class="brand-name">Blindspot</span>
+      <span class="brand-tag-sm">See every delay. Control every stage.</span>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <% if (typeof navKind !== 'undefined' && navKind === 'admin') { %>
+      <a class="nav-item <%= active === 'overview' ? 'active' : '' %>" href="/admin"><span>Overview</span></a>
+      <a class="nav-item <%= active === 'confirm' ? 'active' : '' %>" href="/confirm"><span>Confirmation</span></a>
+      <a class="nav-item <%= active === 'pack' ? 'active' : '' %>" href="/pack"><span>Packaging</span></a>
+      <a class="nav-item <%= active === 'doc' ? 'active' : '' %>" href="/doc"><span>Documentation/Dispatch</span></a>
+      <a class="nav-item <%= active === 'del' ? 'active' : '' %>" href="/del"><span>Delivery</span></a>
+      <span class="nav-divider" role="presentation"></span>
+      <a class="nav-item <%= active === 'employees' ? 'active' : '' %>" href="/admin"><span>Employees</span></a>
+      <a class="nav-item <%= active === 'reports' ? 'active' : '' %>" href="/reports"><span>Reports</span></a>
+    <% } else { %>
+      <a class="nav-item <%= active === 'dashboard' ? 'active' : '' %>" href="/"><span>Main Dashboard</span></a>
+      <a class="nav-item <%= active !== 'dashboard' ? 'active' : '' %>" href="<%= typeof homeUrl !== 'undefined' ? homeUrl : '/' %>"><span><%= typeof homeLabel !== 'undefined' ? homeLabel : 'Overview' %></span></a>
+    <% } %>
+  </nav>
+
+  <div class="sidebar-footer">
+    <% if (typeof me !== 'undefined' && me) { %>
+      <div class="sidebar-user">
+        <div class="user-avatar"><%= (me.name || 'E').slice(0, 1).toUpperCase() %></div>
+        <div class="user-meta">
+          <span class="user-name"><%= me.name %></span>
+          <span class="user-role"><%= { ADMIN: 'Administrator', CONFIRM: 'Confirmation', PACK: 'Packaging', DOC: 'Documentation/Dispatch', DEL: 'Delivery' }[me.role] || me.role %></span>
+        </div>
+      </div>
+      <form method="post" action="/auth/logout">
+        <input type="hidden" name="_csrf" value="<%= csrf %>">
+        <button class="btn btn-logout" type="submit">Log out</button>
+      </form>
+    <% } %>
+  </div>
+</aside>
+<div class="sidebar-overlay" id="sidebar-overlay" hidden></div>

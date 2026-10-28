@@ -1,0 +1,48 @@
+rules_version = '2';
+
+// ============================================================
+// Blindspot - Cloud Firestore Security Rules
+// ============================================================
+// ALL database access is intended to go through the Spring Boot backend,
+// which uses the Firebase Admin SDK. IMPORTANT: the Admin SDK *bypasses*
+// these rules entirely - it always has full read/write access.
+//
+// Therefore these rules exist to make sure that NOBODY can reach the data
+// directly from a browser/app client (Firebase web SDK), so the only path
+// to the data is through the backend's session-authenticated, role-checked
+// REST endpoints. Server-side authorization in the Spring Boot application
+// (Spring Security roles + per-stage checks in the service layer) is what
+// actually enforces permissions for API calls.
+//
+// If one day direct-client access is desired, DO NOT loosen the rules below
+// casually: packages contain internal remarks, issues, delays and employee
+// names that must stay out of the public dashboard.
+// ============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Employees: server-only. Role and enabled state are server-controlled;
+    // clients must never be able to escalate their own role.
+    match /employees/{uid} {
+      allow read, write: if false;
+    }
+
+    // Packages: contain internal data (remarks, issues, delay reasons,
+    // order details). The public dashboard is served exclusively through
+    // /api/public/* which whitelists safe fields on the server.
+    match /packages/{packageCode} {
+      allow read, write: if false;
+
+      // Audit history: server-only.
+      match /history/{eventId} {
+        allow read, write: if false;
+      }
+    }
+
+    // Deny everything else by default.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

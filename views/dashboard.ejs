@@ -1,0 +1,110 @@
+<%- include('partials/head') %>
+<body class="public-page">
+  <%- include('partials/public-header', { me: me }) %>
+
+  <main class="container">
+    <div class="hero">
+      <h1>Logistics and supply chain overview</h1>
+      <p>Track every package through Confirmation, Packaging, Documentation/Dispatch and Delivery - stage by stage, delay by delay.</p>
+    </div>
+
+    <section aria-label="Summary" id="summary-cards" class="summary-grid">
+      <div class="card stat"><span class="stat-dot neutral"></span><div><span class="stat-value" id="stat-total">-</span><span class="stat-label">Total Packages</span></div></div>
+      <div class="card stat"><span class="stat-dot pending"></span><div><span class="stat-value" id="stat-awaitingConfirmation">-</span><span class="stat-label">Awaiting Confirmation</span></div></div>
+      <div class="card stat"><span class="stat-dot progress"></span><div><span class="stat-value" id="stat-inPackaging">-</span><span class="stat-label">In Packaging</span></div></div>
+      <div class="card stat"><span class="stat-dot progress"></span><div><span class="stat-value" id="stat-awaitingDocDispatch">-</span><span class="stat-label">Awaiting Documentation/Dispatch</span></div></div>
+      <div class="card stat"><span class="stat-dot progress"></span><div><span class="stat-value" id="stat-inDelivery">-</span><span class="stat-label">In Delivery</span></div></div>
+      <div class="card stat"><span class="stat-dot delivered"></span><div><span class="stat-value" id="stat-delivered">-</span><span class="stat-label">Delivered</span></div></div>
+      <div class="card stat"><span class="stat-dot delayed"></span><div><span class="stat-value" id="stat-delayed">-</span><span class="stat-label">Delayed</span></div></div>
+    </section>
+
+    <section class="card filters-card" aria-label="Search and filters">
+      <form id="filters" class="filters" onsubmit="return false;">
+        <label class="field grow">
+          <span class="label">Search</span>
+          <input class="input" type="search" id="f-q" placeholder="Package ID, project or approved customer...">
+        </label>
+        <label class="field">
+          <span class="label">Stage</span>
+          <select class="input" id="f-stage">
+            <option value="">All stages</option>
+            <option value="CONFIRMATION">Confirmation</option>
+            <option value="PACKAGING">Packaging</option>
+            <option value="DOCUMENTATION_DISPATCH">Documentation/Dispatch</option>
+            <option value="DELIVERY">Delivery</option>
+            <option value="DELIVERED">Delivered</option>
+          </select>
+        </label>
+        <label class="field">
+          <span class="label">Status</span>
+          <select class="input" id="f-status">
+            <option value="">All statuses</option>
+            <option value="PENDING">Pending</option>
+            <option value="IN_PROGRESS">In Progress</option>
+            <option value="ATTEMPTED">Delivery Attempted</option>
+            <option value="COMPLETED">Completed</option>
+            <option value="DELAYED">Delayed</option>
+          </select>
+        </label>
+        <label class="field"><span class="label">Expected from</span><input class="input" type="date" id="f-from"></label>
+        <label class="field"><span class="label">Expected to</span><input class="input" type="date" id="f-to"></label>
+        <label class="field">
+          <span class="label">Sort by</span>
+          <select class="input" id="f-sort">
+            <option value="updated">Latest update</option>
+            <option value="update-asc">Oldest update</option>
+            <option value="delivery">Expected delivery (soonest)</option>
+            <option value="delivery-asc">Expected delivery (latest)</option>
+          </select>
+        </label>
+        <button class="btn btn-outline" id="f-clear" type="button">Clear filters</button>
+      </form>
+      <p class="filter-note" id="filter-note" hidden></p>
+    </section>
+
+    <section class="card" aria-label="Package overview">
+      <div class="card-head">
+        <h2 class="card-title">Package overview</h2>
+        <span class="table-meta" id="table-meta"></span>
+      </div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th scope="col">Package ID</th>
+              <th scope="col">Project</th>
+              <th scope="col">Customer</th>
+              <th scope="col">Current Stage</th>
+              <th scope="col">Progress</th>
+              <th scope="col">Status</th>
+              <th scope="col">Expected Delivery</th>
+              <th scope="col">Delay Indicator</th>
+            </tr>
+          </thead>
+          <tbody id="packagesBody">
+            <tr class="state-row"><td colspan="8"><span class="muted">Loading packages...</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="empty-state" id="empty-state" hidden>
+        <p><strong>No packages match your filters.</strong></p>
+        <p class="muted">Try clearing the search, stage or date filters.</p>
+      </div>
+      <div class="error-state" id="error-state" hidden>
+        <p><strong>Could not load package data.</strong></p>
+        <p class="muted" id="error-detail"></p>
+        <button class="btn btn-outline btn-sm" id="retry" type="button">Retry</button>
+      </div>
+    </section>
+
+    <p class="footer-note">
+      Public dashboard shows approved information only. Internal remarks, private
+      documents and employee data stay with the operations team.
+      <% if (!me) { %><a href="/login">Employee login</a> for workflow access.<% } %>
+    </p>
+  </main>
+
+  <script>window.__PAGE__ = 'dashboard';</script>
+  <script src="/js/dashboard.js" defer></script>
+</body>
+</html>

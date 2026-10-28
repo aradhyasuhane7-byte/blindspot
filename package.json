@@ -1,0 +1,27 @@
+{
+  "name": "blindspot",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Blindspot - Logistics & Supply Chain Management SaaS (Node.js + Express + Firebase)",
+  "main": "server/app.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node test/workflow-rules.test.js",
+    "seed:demo": "node tools/seed-demo.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^16.4.5",
+    "ejs": "^3.1.10",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.4.0",
+    "express-session": "^1.18.0",
+    "firebase": "^13.1.0",
+    "firebase-admin": "^12.1.1",
+    "helmet": "^7.1.0"
+  }
+}

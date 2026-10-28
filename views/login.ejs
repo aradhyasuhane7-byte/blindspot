@@ -1,0 +1,62 @@
+<%- include('partials/head') %>
+<body class="login-page">
+  <main class="login-shell">
+    <section class="login-hero">
+      <a class="brand" href="/"><span class="brand-mark" aria-hidden="true"></span><span class="brand-name">Blindspot</span></a>
+      <p class="login-tag">See every delay.<br>Control every stage.</p>
+      <p class="login-copy">Employee access to the four operational workflows:
+        Confirmation, Packaging, Documentation/Dispatch and Delivery.</p>
+    </section>
+
+    <section class="card login-card">
+      <h1 class="login-title">Employee Login</h1>
+      <p class="muted">Sign in with your company email and password.</p>
+
+      <div class="notice" id="login-notice" hidden></div>
+
+      <form id="login-form" novalidate>
+        <label class="field">
+          <span class="label">Email <span class="req" aria-hidden="true">*</span></span>
+          <input class="input" type="email" id="email" name="email" autocomplete="email" required>
+        </label>
+        <label class="field">
+          <span class="label">Password <span class="req" aria-hidden="true">*</span></span>
+          <span class="pw-wrap">
+            <input class="input" type="password" id="password" name="password" autocomplete="current-password" required>
+            <button type="button" class="pw-toggle" id="pw-toggle" aria-label="Show password">Show</button>
+          </span>
+        </label>
+        <div class="error-text" id="login-error" role="alert" hidden></div>
+        <button class="btn btn-primary btn-block" id="login-btn" type="submit">Sign in</button>
+      </form>
+
+      <p class="muted login-back">Not an employee? The
+        <a href="/">main dashboard</a> is open to everyone.</p>
+
+      <div class="demo-box" id="demo-box">
+        <p class="demo-title"><span aria-hidden="true">&#9889;</span> Demo accounts — click to fill
+          (password: <code>demo1234</code>)</p>
+        <div class="demo-grid">
+          <button type="button" class="demo-fill" data-role="Admin"                   data-email="admin@blindspot.demo">Admin</button>
+          <button type="button" class="demo-fill" data-role="Confirmation"           data-email="confirm@blindspot.demo">Confirm</button>
+          <button type="button" class="demo-fill" data-role="Packaging"              data-email="pack@blindspot.demo">Pack</button>
+          <button type="button" class="demo-fill" data-role="Documentation/Dispatch" data-email="doc@blindspot.demo">Doc</button>
+          <button type="button" class="demo-fill" data-role="Delivery"               data-email="del@blindspot.demo">Del</button>
+        </div>
+        <p class="demo-note">Each account opens its own workflow page. Demo packages
+          PKG-1001…1016 cover every stage, delay and delivered scenario.</p>
+      </div>
+
+      <% if (!configured) { %>
+        <div class="notice warn" id="setup-hint">
+          Firebase web configuration (FB_WEB_API_KEY, FB_WEB_AUTH_DOMAIN, FB_WEB_APP_ID)
+          is missing in .env - add it so sign-in works.
+        </div>
+      <% } %>
+    </section>
+  </main>
+
+  <script id="fb-config" type="application/json"><%- JSON.stringify(fbConfig) %></script>
+  <script>window.__PAGE__ = 'login';</script>
+</body>
+</html>
