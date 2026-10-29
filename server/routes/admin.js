@@ -15,7 +15,13 @@ const employeesService = require('../services/employees');
 const adminGuard = requireRole('ADMIN');
 
 router.get('/', adminGuard, (req, res) => {
-  res.render('admin', { title: 'Admin Panel - Blindspot', me: req.session.employee, denied: req.query.denied === '1' });
+  res.render('admin', { title: 'Admin Overview - Blindspot', me: req.session.employee, denied: req.query.denied === '1' });
+});
+
+// Employees is its own page (the sidebar links it directly; the old single
+// /admin page crammed overview + staff management together).
+router.get('/employees', adminGuard, (req, res) => {
+  res.render('admin-employees', { title: 'Employees - Blindspot', me: req.session.employee, denied: req.query.denied === '1' });
 });
 
 // GET /admin/api/summary

@@ -70,8 +70,11 @@ function createApp() {
   app.use(csrfInit);
   app.use(csrfProtect);
 
-  // Static assets + pages/APIs
-  app.use(express.static(path.join(__dirname, '..', 'public'), { maxAge: '1h' }));
+  // Static assets + pages/APIs.
+  // No client-side maxAge: every load revalidates via ETag (cheap 304), so a
+  // changed css/js file is picked up by a normal reload. The old 1h cache hid
+  // updates behind stale assets and caused "I still see the old bug" reports.
+  app.use(express.static(path.join(__dirname, '..', 'public'), { maxAge: 0 }));
   app.use('/', publicRoutes);
   app.use('/', authRoutes);
   app.use('/admin', adminRoutes);

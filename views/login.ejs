@@ -33,6 +33,7 @@
       <p class="muted login-back">Not an employee? The
         <a href="/">main dashboard</a> is open to everyone.</p>
 
+      <% if (demo) { %>
       <div class="demo-box" id="demo-box">
         <p class="demo-title"><span aria-hidden="true">&#9889;</span> Demo accounts — click to fill
           (password: <code>demo1234</code>)</p>
@@ -46,6 +47,7 @@
         <p class="demo-note">Each account opens its own workflow page. Demo packages
           PKG-1001…1016 cover every stage, delay and delivered scenario.</p>
       </div>
+      <% } %>
 
       <% if (!configured) { %>
         <div class="notice warn" id="setup-hint">

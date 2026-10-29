@@ -5,7 +5,7 @@
   <div class="main">
     <header class="topbar">
       <button class="hamburger" id="hamburger" aria-label="Open menu" aria-controls="sidebar" aria-expanded="false">&#9776;</button>
-      <h1 class="topbar-title" id="page-title">Admin Panel</h1>
+      <h1 class="topbar-title" id="page-title">Admin Overview</h1>
       <div class="topbar-actions"><span class="chip chip-blue">Administrator</span></div>
     </header>
 
@@ -21,100 +21,12 @@
         <div class="card stat"><span class="stat-dot pending"></span><div><span class="stat-value" id="a-attention">-</span><span class="stat-label">Needed attention</span></div></div>
       </section>
 
-      <section aria-label="Workflow navigation" class="workflow-cards">
-        <div class="card wf-card">
-          <h2>Confirmation</h2>
-          <p class="muted">Review and confirm incoming packages.</p>
-          <a class="btn btn-primary" href="/confirm">Open Confirmation</a>
-        </div>
-        <div class="card wf-card">
-          <h2>Packaging</h2>
-          <p class="muted">Manage package preparation and completion.</p>
-          <a class="btn btn-primary" href="/pack">Open Packaging</a>
-        </div>
-        <div class="card wf-card">
-          <h2>Documentation & Dispatch</h2>
-          <p class="muted">Verify documents and record dispatch/handover.</p>
-          <a class="btn btn-primary" href="/doc">Open Documentation</a>
-        </div>
-        <div class="card wf-card">
-          <h2>Delivery</h2>
-          <p class="muted">Track final delivery and record completion.</p>
-          <a class="btn btn-primary" href="/del">Open Delivery</a>
-        </div>
-      </section>
-
-      <section class="card" id="employees" aria-label="Employee management">
-        <div class="card-head">
-          <h2 class="card-title">Employees</h2>
-          <button class="btn btn-primary" id="open-create-emp" type="button">+ Create Employee</button>
-        </div>
-        <form class="work-filters" onsubmit="return false;">
-          <label class="field grow"><span class="label">Search name or email</span>
-            <input class="input" type="search" id="emp-q" placeholder="Name or email...">
-          </label>
-          <label class="field"><span class="label">Role</span>
-            <select class="input" id="emp-role">
-              <option value="">All roles</option>
-              <option value="ADMIN">Administrator</option>
-              <option value="CONFIRM">Confirmation</option>
-              <option value="PACK">Packaging</option>
-              <option value="DOC">Documentation/Dispatch</option>
-              <option value="DEL">Delivery</option>
-            </select>
-          </label>
-          <label class="field"><span class="label">Status</span>
-            <select class="input" id="emp-status">
-              <option value="">All</option>
-              <option value="enabled">Enabled</option>
-              <option value="disabled">Disabled</option>
-            </select>
-          </label>
-          <button class="btn btn-outline" id="emp-refresh" type="button">Refresh</button>
-        </form>
-        <div class="table-wrap">
-          <table class="table">
-            <thead><tr>
-              <th scope="col">Name</th><th scope="col">Email</th><th scope="col">Role</th>
-              <th scope="col">Status</th><th scope="col">Created</th><th scope="col">Actions</th>
-            </tr></thead>
-            <tbody id="emp-body"><tr class="state-row"><td colspan="6"><span class="muted">Loading employees...</span></td></tr></tbody>
-          </table>
-        </div>
-        <div class="empty-state" id="emp-empty" hidden><p><strong>No employees found.</strong></p><p class="muted">Create the first employee or adjust the filters.</p></div>
-        <div class="error-state" id="emp-error" hidden><p><strong>Could not load employees.</strong></p><p class="muted" id="emp-error-detail"></p></div>
-        <p class="muted small">Roles are enforced server-side. The last active administrator can never be demoted or disabled.</p>
-      </section>
+      <p class="footer-note">
+        Use the sidebar to open a workflow (Confirmation, Packaging, Documentation/Dispatch,
+        Delivery), manage <a href="/admin/employees">Employees</a> or view
+        <a href="/reports">Reports</a>.
+      </p>
     </main>
-  </div>
-
-  <div class="modal-backdrop" id="emp-modal" hidden>
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="emp-title">
-      <div class="modal-head"><h2 id="emp-title">Create Employee</h2><button class="modal-x" data-close="emp-modal" type="button" aria-label="Close">&#10005;</button></div>
-      <div class="modal-body">
-        <form id="emp-form" novalidate>
-          <label class="field"><span class="label">Name <span class="req">*</span></span><input class="input" id="e-name" maxlength="120"></label>
-          <label class="field"><span class="label">Email <span class="req">*</span></span><input class="input" type="email" id="e-email"></label>
-          <label class="field"><span class="label">Temporary password <span class="req">*</span> <span class="hint">(at least 6 characters)</span></span>
-            <input class="input" type="text" id="e-pass" minlength="6" autocomplete="new-password"></label>
-          <label class="field"><span class="label">Role <span class="req">*</span></span>
-            <select class="input" id="e-role">
-              <option value="CONFIRM">Confirmation</option>
-              <option value="PACK">Packaging</option>
-              <option value="DOC">Documentation/Dispatch</option>
-              <option value="DEL">Delivery</option>
-              <option value="ADMIN">Administrator</option>
-            </select>
-          </label>
-          <div class="error-text" id="emp-form-error" hidden></div>
-          <p class="muted small">The employee account is created in Firebase Authentication and the profile is stored in Firestore. Share the temporary password privately.</p>
-        </form>
-      </div>
-      <div class="modal-foot">
-        <button class="btn btn-outline" data-close="emp-modal" type="button">Cancel</button>
-        <button class="btn btn-primary" id="emp-submit" type="button">Create Employee</button>
-      </div>
-    </div>
   </div>
 
   <div id="toast-stack" class="toast-stack" aria-live="polite"></div>
@@ -123,6 +35,6 @@
     window.__PAGE__ = 'admin';
     <% if (typeof denied !== 'undefined' && denied) { %>document.getElementById('denied-banner').hidden = false;<% } %>
   </script>
-  <script src="/js/workflow.js" defer></script>
+  <script src="/js/workflow.js?v=3" defer></script>
 </body>
 </html>

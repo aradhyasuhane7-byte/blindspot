@@ -45,6 +45,9 @@ router.get('/login', async (req, res, next) => {
         appId: process.env.FB_WEB_APP_ID,
       },
       configured: Boolean(process.env.FB_WEB_API_KEY),
+      // Demo quick-fill only when demo seeding is enabled (local/demo use).
+      // Never advertise credentials on a production login page.
+      demo: process.env.BLINDSPOT_AUTO_SEED_DEMO === 'true',
       reason: req.query.reason || '',
     });
   } catch (err) { next(err); }
@@ -110,7 +113,9 @@ function logout(req, res) {
   req.session = null;
   res.clearCookie('blindspot.sid');
   res.clearCookie('blindspot.sid.sig');
-  res.clearCookie('bs_csrf');
+  // Deliberately keep the bs_csrf cookie: it is shared by every open tab and
+  // clearing it invalidated tokens embedded in already-rendered pages, which
+  // is what caused "CSRF token mismatch" on the next logout from another tab.
   if (req.accepts('json') && req.path === '/auth/logout') {
     res.json({ redirect: '/login?reason=logout' });
   } else {

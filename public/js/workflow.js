@@ -492,7 +492,15 @@
 
     openModal('pkg-modal');
   }
-  document.getElementById('view-tabs').addEventListener('click', (event) => {
+
+  // Workflow-page controls (view tabs, search, table, create form). These run
+  // ONLY on /confirm /pack /doc /del. On other pages that load this file
+  // (e.g. /admin) the elements do not exist - touching them threw a TypeError
+  // that killed the whole controller, which is why the admin summary and the
+  // employees table never loaded on /admin.
+  if (MODULES[PAGE]) {
+  const viewTabs = document.getElementById('view-tabs');
+  if (viewTabs) viewTabs.addEventListener('click', (event) => {
     const tab = event.target.closest('.tab');
     if (!tab) return;
     document.querySelectorAll('#view-tabs .tab').forEach((t) => {
@@ -558,11 +566,15 @@
     });
   }
 
+  }
+
   // ------------------------------------------------------------ ADMIN module
   if (PAGE === 'admin') {
     let employeesCache = [];
 
     async function loadSummary() {
+      // Overview page only - skip silently on the employees page.
+      if (!document.getElementById('a-total')) return;
       try {
         const s = await api('/admin/api/summary');
         [['a-total', s.totalPackages], ['a-active', s.active], ['a-delayed', s.delayed],
@@ -624,11 +636,14 @@
     }
 
     function showEmpLoading() {
-      document.getElementById('emp-body').innerHTML =
+      const listEl = document.getElementById('emp-body');
+      if (!listEl) return; // employees section not on this page
+      listEl.innerHTML =
         '<tr class="state-row"><td colspan="6"><span class="muted">Loading employees…</span></td></tr>';
     }
 
-    document.getElementById('emp-body').addEventListener('click', async (event) => {
+    const empBody = document.getElementById('emp-body');
+    if (empBody) empBody.addEventListener('click', async (event) => {
       const saveBtn = event.target.closest('[data-save-role]');
       const toggleBtn = event.target.closest('[data-toggle-uid]');
       if (!saveBtn && !toggleBtn) return;
@@ -694,7 +709,8 @@
     if (empRefresh) empRefresh.addEventListener('click', loadEmployees);
 
     loadSummary();
-    loadEmployees();
+    // Employees init only on the /admin/employees page (section exists there).
+    if (document.getElementById('emp-body')) loadEmployees();
     if (new URLSearchParams(window.location.search).get('denied') === '1') {
       const banner = document.getElementById('denied-banner');
       if (banner) banner.hidden = false;

@@ -35,17 +35,29 @@ function csrfInit(req, res, next) {
 
 function csrfProtect(req, res, next) {
   if (SAFE.has(req.method)) return next();
-  // Session login/logout included on purpose.
+  // Logout is exempt on purpose: it is a safe action (worst case, a forged
+  // request logs the user out). Failing it closed used to strand users on a
+  // raw JSON 403 when another open tab had rotated the shared token.
+  if (req.path === '/auth/logout') return next();
   const sent = (req.get('X-XSRF-TOKEN') || (req.body && req.body._csrf) || '').trim();
   if (!sent || !req.csrfToken) {
-    return res.status(403).json({ message: 'CSRF token missing. Reload the page and try again.' });
+    return csrfFail(req, res, 'CSRF token missing. Reload the page and try again.');
   }
   const a = Buffer.from(sent);
   const b = Buffer.from(req.csrfToken);
   if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
-    return res.status(403).json({ message: 'CSRF token mismatch (stale page?). Reload and retry.' });
+    return csrfFail(req, res, 'CSRF token mismatch (stale page?). Reload and retry.');
   }
   next();
+}
+
+/** Fetch calls get JSON; browser form navigations get a friendly redirect. */
+function csrfFail(req, res, message) {
+  const isBrowserNav = /text\/html/i.test(req.get('Accept') || '')
+    && !req.get('X-XSRF-TOKEN')
+    && (req.get('X-Requested-With') || '') !== 'XMLHttpRequest';
+  if (isBrowserNav) return res.redirect('/login?reason=csrf');
+  return res.status(403).json({ message });
 }
 
 module.exports = { csrfInit, csrfProtect };

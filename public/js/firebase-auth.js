@@ -101,6 +101,7 @@
     logout: 'You have been logged out.',
     disabled: 'This account is disabled. Contact an administrator.',
     session: 'Your session expired. Please log in again.',
+    csrf: 'Your page was out of date. You have been signed out - please try again.',
   };
   if (params.get('reason') && REASONS[params.get('reason')]) {
     notice.hidden = false;
