@@ -252,7 +252,9 @@ body.app { min-height: 100vh; }
   gap: 14px;
   margin-bottom: 18px;
 }
-.stat { display: flex; gap: 12px; align-items: flex-start; padding: 18px; }
+.summary-grid > .card { min-width: 0; } /* content must never widen a grid track */
+.stat { display: flex; gap: 12px; align-items: flex-start; padding: 18px; min-width: 0; }
+.stat > div { min-width: 0; }
 .stat-dot {
   width: 12px; height: 12px; border-radius: 50%;
   margin-top: 6px; flex: 0 0 auto;
@@ -265,7 +267,7 @@ body.app { min-height: 100vh; }
 .stat-dot.delayed { background: var(--danger); }
 .stat-dot.neutral { background: var(--neutral); }
 .stat-value { display: block; font-size: 26px; font-weight: 800; line-height: 1.15; }
-.stat-label { color: var(--text-secondary); font-size: 13px; }
+.stat-label { color: var(--text-secondary); font-size: 13px; overflow-wrap: anywhere; }
 
 /* workflow quick-cards */
 .workflow-cards {
@@ -328,8 +330,12 @@ body.app { min-height: 100vh; }
 .cell-sub { color: var(--text-secondary); font-size: 12.5px; }
 .row-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
-/* progress bar + stage dots */
-.progress {
+/* progress bar + stage dots.
+   NOTE: the track must NOT be named ".progress" - "progress" is also a
+   stat-dot/badge color modifier, and this component rule (later in the
+   file, same specificity) used to override their size, rendering dots and
+   badges as 130x8px bars and overflowing the cards. */
+.progress-track {
   background: #E4E7EC;
   border-radius: 999px;
   height: 8px;

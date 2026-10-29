@@ -70,7 +70,7 @@
       <td>${customer}</td>
       <td class="nowrap">${esc(item.stageLabel)}</td>
       <td>
-        <div class="progress" role="progressbar" aria-valuenow="${item.progress}" aria-valuemin="0" aria-valuemax="100" aria-label="Progress">
+        <div class="progress-track" role="progressbar" aria-valuenow="${item.progress}" aria-valuemin="0" aria-valuemax="100" aria-label="Progress">
           <div class="progress-fill" style="width:${item.progress}%"></div>
         </div>
         ${stageDots(item.stage)} <span class="cell-sub">${item.progress}%</span>
