@@ -169,7 +169,13 @@ async function applyAction(stageKey, code, body, employee) {
     // status transitions helper
     function go(target) {
       u[`${DETAIL_KEY[stageKey]}.status`] = target;
-      if (target === 'IN_PROGRESS' && !sub.startedAt) u[`${DETAIL_KEY[stageKey]}.startedAt`] = sv();
+      if (target === 'IN_PROGRESS' && !sub.startedAt) {
+        u[`${DETAIL_KEY[stageKey]}.startedAt`] = sv();
+        // Planned completion deadline (WP1): stage starts today, due in
+        // TARGET_DAYS. Overdue detection compares actual progress to this.
+        u[`${DETAIL_KEY[stageKey]}.plannedCompletion`] =
+          S.isoPlusDays(dates.todayLocal(), S.TARGET_DAYS[stageKey]);
+      }
       if (target === 'COMPLETED' && !sub.startedAt) u[`${DETAIL_KEY[stageKey]}.startedAt`] = sub.startedAt || pkg.createdAt || sv();
       if (target === 'COMPLETED') u[`${DETAIL_KEY[stageKey]}.completedAt`] = sub.completedAt || sv();
       if (stageKey === pkg.currentStage) {
@@ -240,12 +246,21 @@ async function applyAction(stageKey, code, body, employee) {
       case 'DOCUMENTATION_DISPATCH:delay':
       case 'DELIVERY:delay': {
         mustStage(); S.assertCanApply('delay', curStatus, S.STAGES[stageKey].label);
-        const reason = trimOr(body.delayReason, null) || remarks;
-        if (!reason) throw new PackageError('A delay reason is required to mark a package delayed');
+        // Structured delay-reason taxonomy (vision feature #3): a category is
+        // REQUIRED; the optional note refines it. Reports group by category.
+        const category = String((body && body.delayCategory) || '').trim();
+        if (!S.DELAY_REASONS[category]) {
+          throw new PackageError('Select a delay reason (missing information, material shortage, '
+            + 'packaging issue, documentation error, transporter delay or other)');
+        }
+        const note2 = trimOr(body.delayReason, null) || remarks || null;
+        const reason = S.DELAY_REASONS[category] + (note2 ? ` - ${note2}` : '');
         u[`${DETAIL_KEY[stageKey]}.delayReason`] = reason;
+        u[`${DETAIL_KEY[stageKey]}.delayCategory`] = category;
         u.delayReason = reason;
+        u.delayCategory = category;
         go('DELAYED');
-        issue(`Delayed: ${reason}`);
+        issue(`Delayed (${S.DELAY_REASONS[category]})${note2 ? ': ' + note2 : ''}`);
         message = 'Delay recorded';
         break;
       }
@@ -462,7 +477,10 @@ async function applyAction(stageKey, code, body, employee) {
     u.updatedAt = sv();
     tx.update(ref(code), u);
     tx.create(ref(code).collection('history').doc(), ev(stageKey, curStatus, pkg.status, employee,
-      actionRemarks(action, remarks), action, trimOr(body.delayReason, null)));
+      actionRemarks(action, remarks), action,
+      // Delay events carry the structured category code so reports can group
+      // delays by reason (vision feature #3).
+      body && body.delayCategory ? String(body.delayCategory) : trimOr(body.delayReason, null)));
 
     return message;
   }).catch((err) => {
@@ -502,7 +520,9 @@ function actionRemarks(action, remarks) {
 /** Appends an issue note into a detail map via dotted-path update. */
 function pushIssue(u, detailKey, note2, employee) {
   const list = u[`${detailKey}.issues`] || [];
-  list.push({ note: note2, by: employee ? employee.name : 'system', at: sv() });
+  // Real Timestamp value, NOT FieldValue.serverTimestamp(): Firestore forbids
+  // field sentinels inside arrays, so sv() here 500s every delay/issue write.
+  list.push({ note: note2, by: employee ? employee.name : 'system', at: admin.firestore.Timestamp.now() });
   u[`${detailKey}.issues`] = list;
 }
 
@@ -537,6 +557,12 @@ function workflowView(p, today) {
     badge: S.STATUS[p.status].badge,
     progress: S.STAGES[stageKey].progress,
     expectedDelivery: p.expectedDelivery || '',
+    // Stage deadline (vision feature #2): planned completion of the CURRENT
+    // stage + days overdue, so employees see slips before they become crises.
+    stageDeadline: (() => {
+      const d = S.stageDeadlineInfo(p, stageKey, today);
+      return { planned: d.planned || '', overdueDays: d.overdueDays };
+    })(),
     delayKey: delayed.key,
     delayDetail: delayed.detail,
     delayReason: p.delayReason || '',

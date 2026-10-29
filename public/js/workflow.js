@@ -54,6 +54,7 @@
         ['Status', 'status'],
         ['Confirmation date', 'confirmDate'],
         ['Expected delivery', 'expected'],
+        ['Planned completion', 'planned'],
         ['Delay', 'delay'],
         ['', 'actions'],
       ],
@@ -65,7 +66,7 @@
         ['delay', 'Record confirmation delay', 'danger'],
         ['record-issue', 'Record issue', 'outline'],
       ],
-      fields: ['remarks'],
+      fields: ['delayCategory', 'remarks'],
       can: (p, action) => {
         const st = p.confirmation.status;
         const atCurrentStage = p.currentStage === 'CONFIRMATION';
@@ -89,6 +90,7 @@
         ['Packaging start', 'packStart'],
         ['Packaging completed', 'packDone'],
         ['Expected delivery', 'expected'],
+        ['Planned completion', 'planned'],
         ['Delay', 'delay'],
         ['', 'actions'],
       ],
@@ -99,7 +101,7 @@
         ['delay', 'Record packaging delay', 'danger'],
         ['record-issue', 'Record missing materials / issue', 'outline'],
       ],
-      fields: ['remarks'],
+      fields: ['delayCategory', 'remarks'],
       can: (p, action) => {
         const st = p.packaging.status;
         const ok = p.confirmation.status === 'COMPLETED';
@@ -123,6 +125,7 @@
         ['Dispatch date', 'dispatchDate'],
         ['Expected delivery', 'expected'],
         ['Status', 'status'],
+        ['Planned completion', 'planned'],
         ['', 'actions'],
       ],
       detailKeys: ['orderReference', 'invoiceNumber', 'shippingDocRef', 'verification', 'transporter', 'trackingNumber', 'dispatchDate'],
@@ -136,7 +139,7 @@
         ['delay', 'Record dispatch delay', 'danger'],
         ['record-issue', 'Record issue', 'outline'],
       ],
-      fields: ['invoiceNumber', 'shippingDocRef', 'transporter', 'trackingNumber', 'dispatchDate', 'remarks'],
+      fields: ['invoiceNumber', 'shippingDocRef', 'transporter', 'trackingNumber', 'dispatchDate', 'delayCategory', 'remarks'],
       can: (p, action) => {
         const atCurrentStage = p.currentStage === 'DOCUMENTATION_DISPATCH';
         const d = p.dispatch, doc = p.documentation;
@@ -167,6 +170,7 @@
         ['Transporter / Tracking', 'transporter'],
         ['Attempts', 'attempts'],
         ['Expected delivery', 'expected'],
+        ['Planned completion', 'planned'],
         ['Actual delivery', 'actual'],
         ['', 'actions'],
       ],
@@ -180,7 +184,7 @@
         ['delay', 'Record delivery delay', 'danger'],
         ['record-issue', 'Record delivery issue', 'outline'],
       ],
-      fields: ['expectedDelivery', 'remarks'],
+      fields: ['expectedDelivery', 'delayCategory', 'remarks'],
       can: (p, action) => {
         const atCurrentStage = p.currentStage === 'DELIVERY';
         const st = p.delivery.status;
@@ -199,6 +203,17 @@
     },
   };
 
+  // Delay-reason taxonomy - codes MUST match server/lib/stages.js (reports
+  // group by these codes). Shown in the delay select on every stage page.
+  const DELAY_REASONS = {
+    MISSING_INFORMATION: 'Missing information',
+    MATERIAL_SHORTAGE: 'Material shortage',
+    PACKAGING_ISSUE: 'Packaging issue',
+    DOCUMENTATION_ERROR: 'Documentation error',
+    TRANSPORTER_DELAY: 'Transporter delay',
+    OTHER: 'Other',
+  };
+
   const MODAL_FIELDS = {
     invoiceNumber: ['Invoice number', 'text'],
     shippingDocRef: ['Shipping document reference', 'text'],
@@ -206,6 +221,7 @@
     trackingNumber: ['Tracking number', 'text'],
     dispatchDate: ['Dispatch/Handover date', 'date'],
     expectedDelivery: ['New expected delivery date', 'date'],
+    delayCategory: ['Delay reason (needed when recording a delay)', 'select', Object.entries(DELAY_REASONS)],
     remarks: ['Remarks', 'textarea'],
     issueNote: ['Issue note', 'textarea'],
   };
@@ -234,6 +250,13 @@
       case 'expected': return `<td class="nowrap">${p.expectedDelivery ? esc(prettyIso(p.expectedDelivery)) : '-'}</td>`;
       case 'updatedAt': return `<td class="nowrap cell-sub">${esc(p.updatedAt)}</td>`;
       case 'delay': return `<td>${delayCell(p)}</td>`;
+      case 'planned': {
+        const d = p.stageDeadline || {};
+        if (!d.planned) return `<td class="nowrap cell-sub">-</td>`;
+        const late = d.overdueDays > 0;
+        return `<td class="nowrap">${esc(prettyIso(d.planned))}${late
+          ? ` <span class="badge delayed">${d.overdueDays}d late</span>` : ''}</td>`;
+      }
       case 'confirmDate': return `<td class="nowrap">${p.confirmation.confirmDate ? esc(p.confirmation.confirmDate) : '-'}</td>`;
       case 'packStart': return `<td class="nowrap cell-sub">${esc(p.packaging.startedAt || '-')}</td>`;
       case 'packDone': return `<td class="nowrap cell-sub">${p.packaging.status === 'COMPLETED' ? esc(p.packaging.completedAt || '') : '-'}</td>`;
@@ -256,6 +279,10 @@
 
   function renderRows(items) {
     const mod = MODULES[PAGE];
+    // Column headers: the empty <tr id="work-head"> in workflow.ejs was never
+    // filled by any script, so the table rendered body rows with no titles.
+    const head = document.getElementById('work-head');
+    if (head) head.innerHTML = mod.columns.map(([label]) => `<th scope="col"${label === '' ? ' aria-label="Actions"' : ''}>${esc(label)}</th>`).join('');
     document.getElementById('work-body').innerHTML = items.length
       ? items.map((p) => `<tr>${mod.columns.map(([, kind]) => cell(kind, p)).join('')}</tr>`).join('')
       : '<tr class="state-row"><td colspan="8"></td></tr>';
@@ -395,7 +422,10 @@
         return `<label class="field"><span class="label">${esc(colNameOf(f))}</span>${
           meta[1] === 'textarea'
             ? `<textarea class="input" id="m-${f}" rows="2">${esc(value)}</textarea>`
-            : `<input class="input" type="${meta[1]}" id="m-${f}" value="${esc(value)}">`
+            : meta[1] === 'select'
+              ? `<select class="input" id="m-${f}"><option value=""></option>${(meta[2] || [])
+                .map(([v, l]) => `<option value="${esc(v)}"${v === value ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select>`
+              : `<input class="input" type="${meta[1]}" id="m-${f}" value="${esc(value)}">`
         }</label>`;
       }).join('')}</div>`;
     return wrapper;
@@ -471,11 +501,18 @@
       bp.addEventListener('click', async () => {
         const action = bp.dataset.action;
         const payload = { action };
-        zone.querySelectorAll('.modal-fields input, .modal-fields textarea')
+        zone.querySelectorAll('.modal-fields input, .modal-fields select, .modal-fields textarea')
           .forEach((el) => {
             const key = el.id.replace('m-', '');
             payload[key] = el.value === '' ? undefined : el.value;
           });
+        // Client-side guard for the structured delay taxonomy: the server
+        // enforces it too, but failing fast here saves a round-trip.
+        if (action === 'delay' && !payload.delayCategory) {
+          bp.disabled = false;
+          toast('Select a delay reason first', 'err');
+          return;
+        }
         bp.disabled = true;
         try {
           const out = await api(`${MODULES[PAGE].apiBase}/packages/${encodeURIComponent(p.packageCode)}/actions`,

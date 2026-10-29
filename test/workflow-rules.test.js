@@ -113,6 +113,72 @@ test('future expected date = on schedule', () => {
   assert.equal(none.key, 'NONE');
 });
 
+// ------------------------------------------- stage deadlines (WP1 delay intel)
+test('isoPlusDays adds whole days to an ISO date', () => {
+  assert.equal(S.isoPlusDays('2026-10-28', 2), '2026-10-30');
+  assert.equal(S.isoPlusDays('2026-10-31', 1), '2026-11-01'); // month rollover
+  assert.equal(S.isoPlusDays('2026-12-30', 5), '2027-01-04'); // year rollover
+  assert.equal(S.isoPlusDays('2026-10-28', 0), '2026-10-28');
+});
+
+test('fmtTsToIso normalizes timestamps and dates to yyyy-MM-dd', () => {
+  assert.equal(S.fmtTsToIso('2026-10-28T09:30:00.000Z'), '2026-10-28');
+  assert.equal(S.fmtTsToIso(new Date(Date.UTC(2026, 9, 28, 12))), '2026-10-28');
+  assert.equal(S.fmtTsToIso(null), null);
+  // Firestore Timestamp duck-typing
+  assert.equal(S.fmtTsToIso({ toMillis: () => Date.UTC(2026, 9, 28, 15) }), '2026-10-28');
+});
+
+test('every stage has a planned target in days', () => {
+  for (const st of ['CONFIRMATION', 'PACKAGING', 'DOCUMENTATION_DISPATCH', 'DELIVERY']) {
+    assert.equal(typeof S.TARGET_DAYS[st], 'number');
+    assert.ok(S.TARGET_DAYS[st] > 0);
+  }
+});
+
+test('delay taxonomy has exactly the six vision codes', () => {
+  assert.deepEqual(Object.keys(S.DELAY_REASONS).sort(), [
+    'DOCUMENTATION_ERROR', 'MATERIAL_SHORTAGE', 'MISSING_INFORMATION',
+    'OTHER', 'PACKAGING_ISSUE', 'TRANSPORTER_DELAY',
+  ]);
+});
+
+test('stageDeadlineInfo: planned date 2 days past = 2 days overdue', () => {
+  const p = {
+    currentStage: 'PACKAGING',
+    packagingDetails: { status: 'IN_PROGRESS', startedAt: '2026-10-20T09:00:00.000Z', plannedCompletion: '2026-10-26' },
+  };
+  const r = S.stageDeadlineInfo(p, 'PACKAGING', TODAY);
+  assert.equal(r.planned, '2026-10-26');
+  assert.equal(r.overdueDays, 2);
+  assert.equal(r.source, 'stored');
+});
+
+test('stageDeadlineInfo: derived from startedAt when no stored plan (legacy data)', () => {
+  const p = {
+    currentStage: 'CONFIRMATION',
+    confirmationDetails: { status: 'IN_PROGRESS', startedAt: '2026-10-20T09:00:00.000Z' },
+  };
+  const r = S.stageDeadlineInfo(p, 'CONFIRMATION', TODAY); // CONFIRMATION target = 2 days
+  assert.equal(r.planned, '2026-10-22');
+  assert.equal(r.overdueDays, 6);
+  assert.equal(r.source, 'derived');
+});
+
+test('stageDeadlineInfo: no plan and never started = nothing to report', () => {
+  const p = { currentStage: 'PACKAGING', packagingDetails: { status: 'PENDING' } };
+  const r = S.stageDeadlineInfo(p, 'PACKAGING', TODAY);
+  assert.equal(r.planned, null);
+  assert.equal(r.overdueDays, 0);
+});
+
+test('stageDeadlineInfo: completed stages and delivered packages are exempt', () => {
+  const done = { currentStage: 'DOCUMENTATION_DISPATCH', documentationDetails: { status: 'COMPLETED', plannedCompletion: '2026-10-01' } };
+  assert.equal(S.stageDeadlineInfo(done, 'DOCUMENTATION_DISPATCH', TODAY).planned, null);
+  const delivered = { currentStage: 'DELIVERED', deliveryDetails: { status: 'IN_PROGRESS', plannedCompletion: '2026-10-01' } };
+  assert.equal(S.stageDeadlineInfo(delivered, 'DELIVERY', TODAY).planned, null);
+});
+
 // ---------------------------------------------------------------- CSV safety
 test('csv escapes commas, quotes and newlines', () => {
   assert.equal(csv.escape('plain'), 'plain');

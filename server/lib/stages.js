@@ -36,6 +36,32 @@ const STATUS = {
 };
 
 /**
+ * Structured delay-reason taxonomy (vision feature #3). Employees MUST pick
+ * one of these when recording a delay; the optional explanation refines it.
+ * Reports group by these codes, so they must stay stable.
+ */
+const DELAY_REASONS = {
+  MISSING_INFORMATION: 'Missing information',
+  MATERIAL_SHORTAGE: 'Material shortage',
+  PACKAGING_ISSUE: 'Packaging issue',
+  DOCUMENTATION_ERROR: 'Documentation error',
+  TRANSPORTER_DELAY: 'Transporter delay',
+  OTHER: 'Other',
+};
+
+/**
+ * Planned completion target per stage, in days from stage start (vision
+ * feature #2). The planned deadline for a stage is written when the stage
+ * starts; overdue detection compares actual timestamps against it.
+ */
+const TARGET_DAYS = {
+  CONFIRMATION: 2,
+  PACKAGING: 3,
+  DOCUMENTATION_DISPATCH: 2,
+  DELIVERY: 3,
+};
+
+/**
  * Allowed transitions per action for the CURRENT stage status.
  * `start` moves to IN_PROGRESS, `resume` recovers DELAYED (delivery also
  * accepts ATTEMPTED back to IN_PROGRESS), `complete` finishes the stage,
@@ -157,6 +183,57 @@ function diffDays(fromIso, today) {
   return Math.round((b - a) / 86400000);
 }
 
+/** ISO date (yyyy-MM-dd) `days` after `iso` (or after today when iso is falsy). */
+function isoPlusDays(iso, days) {
+  // Pure UTC calendar math: parsing local midnight then formatting UTC shifts
+  // the date back a day for any timezone ahead of UTC (e.g. IST).
+  const base = iso ? new Date(iso.slice(0, 10) + 'T00:00:00Z') : new Date();
+  base.setUTCHours(0, 0, 0, 0);
+  base.setUTCDate(base.getUTCDate() + (Number(days) || 0));
+  return base.toISOString().slice(0, 10);
+}
+
+const DETAIL_BY_STAGE = {
+  CONFIRMATION: 'confirmationDetails',
+  PACKAGING: 'packagingDetails',
+  DOCUMENTATION_DISPATCH: 'documentationDetails',
+  DELIVERY: 'deliveryDetails',
+};
+
+/**
+ * Stage-level deadline check for the CURRENT active stage (vision feature #2).
+ * p needs the raw stage detail maps. Returns { planned, overdueDays, source }:
+ * - `planned` is the stored plannedCompletion, or derived from startedAt when
+ *   the package predates deadlines, or null when the stage never started.
+ * - `overdueDays` counts days past the planned date (0 when on/ahead of it).
+ */
+function stageDeadlineInfo(p, stageKey, today) {
+  const key = DETAIL_BY_STAGE[stageKey];
+  const d = key ? p[key] : null;
+  if (!d || d.status === 'COMPLETED' || p.currentStage === 'DELIVERED') {
+    return { planned: null, overdueDays: 0, source: null };
+  }
+  let planned = d.plannedCompletion || null;
+  let source = d.plannedCompletion ? 'stored' : null;
+  if (!planned && d.startedAt) {
+    planned = isoPlusDays(fmtTsToIso(d.startedAt), TARGET_DAYS[stageKey]);
+    source = 'derived';
+  }
+  const overdueDays = planned ? Math.max(0, diffDays(planned, today)) : 0;
+  return { planned, overdueDays, source };
+}
+
+/** Firestore Timestamp | ISO string | Date -> yyyy-MM-dd (UTC-safe enough for day math). */
+function fmtTsToIso(ts) {
+  if (!ts) return null;
+  try {
+    if (typeof ts.toMillis === 'function') return new Date(ts.toMillis()).toISOString().slice(0, 10);
+    if (typeof ts === 'string') return ts.slice(0, 10);
+    if (ts instanceof Date) return ts.toISOString().slice(0, 10);
+  } catch (_) { /* fall through */ }
+  return null;
+}
+
 /** Payload body trimming + required-piece validation for actions. */
 function cleanText(v, max) {
   if (v == null) return null;
@@ -165,8 +242,8 @@ function cleanText(v, max) {
 }
 
 module.exports = {
-  STAGES, ORDER, ROLES, STATUS, ACTIONS,
+  STAGES, ORDER, ROLES, STATUS, ACTIONS, DELAY_REASONS, TARGET_DAYS,
   StageError, isActive, canApply, assertCanApply, actionName, statusLabel,
   assertStageAllows, assertConfirmComplete, assertDispatchComplete, assertDocDataComplete,
-  delayInfo, isDelayed, cleanText,
+  delayInfo, isDelayed, cleanText, isoPlusDays, stageDeadlineInfo, fmtTsToIso,
 };

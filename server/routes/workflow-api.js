@@ -33,6 +33,18 @@ for (const [pathKey, cfg] of Object.entries(PATH_TO_STAGE)) {
     } catch (err) { next(err); }
   });
 
+  // create: POST /api/confirm/packages - new packages always enter at the
+  // Confirmation stage. Gated to the confirm workflow: the create form lives
+  // on the Confirmation page (this route was missing, so creation 404'd).
+  if (pathKey === 'confirm') {
+    router.post(`${base}/packages`, requireRole(...cfg.roles), async (req, res, next) => {
+      try {
+        const p = await packagesService.createPackage(req.body, req.session.employee);
+        res.json({ message: `Package ${p.packageCode} created at the Confirmation stage`, packageCode: p.packageCode });
+      } catch (err) { next(err); }
+    });
+  }
+
   // detail + history: GET /api/confirm/packages/{code}
   router.get(`${base}/packages/:code`, requireRole(...cfg.roles), async (req, res, next) => {
     try {

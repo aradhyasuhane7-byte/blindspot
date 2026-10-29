@@ -76,7 +76,7 @@ async function buildReport({ rangeKind, fromIso, toIso }) {
   }
 
   // ---- delay history via a single collectionGroup query --------------------------
-  const { delayEventsByStage, reasons } = await loadDelayEvents();
+  const { delayEventsByStage, reasons, queryError } = await loadDelayEvents();
 
   // ---- packages currently waiting per stage -------------------------------------
   const awaiting = { CONFIRMATION: 0, PACKAGING: 0, DOCUMENTATION_DISPATCH: 0, DELIVERY: 0 };
@@ -121,6 +121,7 @@ async function buildReport({ rangeKind, fromIso, toIso }) {
     },
     stages,
     topDelayReasons: topEntries(reasons, 8),
+    delayQueryError: queryError,
     trend: cube,
     insufficient,
   };
@@ -145,24 +146,45 @@ function topEntries(map, n) {
 /** history events with newStatus == DELAYED grouped by stage + reason. */
 async function loadDelayEvents() {
   const byStage = { CONFIRMATION: 0, PACKAGING: 0, DOCUMENTATION_DISPATCH: 0, DELIVERY: 0 };
-  const reasons = {};
+  const byCategory = {}; // structured taxonomy codes (see lib/stages.DELAY_REASONS)
+  const legacy = {};     // free-text reasons recorded before the taxonomy existed
+  let queryError = null;
+  let snap;
   try {
-    const snap = await fb.firestore().collectionGroup('history').where('newStatus', '==', 'DELAYED').get();
+    try {
+      snap = await fb.firestore().collectionGroup('history').where('newStatus', '==', 'DELAYED').get();
+    } catch (indexErr) {
+      // Some Firebase projects have the collection-group single-field index
+      // for newStatus disabled, which fails the filtered query with
+      // FAILED_PRECONDITION. A plain scan filtered in code keeps the reports
+      // working without any manual index setup.
+      snap = await fb.firestore().collectionGroup('history').get();
+    }
     const seen = new Set();
     snap.docs.forEach((d) => {
       const x = d.data() || {};
+      if (x.newStatus !== 'DELAYED') return;
       const pkgId = d.ref.parent.parent ? d.ref.parent.parent.id : null;
       const key = (pkgId || '') + '|' + (x.stage || '');
       if (seen.has(key)) return;
       seen.add(key);
       if (byStage[x.stage] !== undefined) byStage[x.stage] += 1;
-      const r = (x.reason || x.remarks || 'Unspecified').slice(0, 120);
-      reasons[r] = (reasons[r] || 0) + 1;
+      const code = String(x.reason || '').trim();
+      if (S.DELAY_REASONS[code]) byCategory[code] = (byCategory[code] || 0) + 1;
+      else {
+        const text = (x.reason || x.remarks || 'Unspecified').slice(0, 120);
+        legacy[text] = (legacy[text] || 0) + 1;
+      }
     });
   } catch (err) {
+    queryError = err.message || String(err);
     console.warn('[blindspot] delay history query failed:', err.message);
   }
-  return { delayEventsByStage: byStage, reasons };
+  // Display form: human labels for coded reasons, raw text for legacy ones.
+  const reasons = {};
+  for (const [code, count] of Object.entries(byCategory)) reasons[S.DELAY_REASONS[code]] = count;
+  for (const [text, count] of Object.entries(legacy)) reasons[text] = (reasons[text] || 0) + count;
+  return { delayEventsByStage: byStage, reasons, delaysByCategory: byCategory, queryError };
 }
 
 /** Trend buckets: weekly by default, monthly for wide spans (>26 weeks). */

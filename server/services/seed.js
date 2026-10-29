@@ -90,14 +90,16 @@ const SCENARIOS = [
     extra: (d) => {
       d.confirmationDetails.confirmDate = iso(-7);
       d.confirmationDetails.startedAt = ts(3, 11);
+      d.confirmationDetails.delayCategory = 'MISSING_INFORMATION';
       d.confirmationDetails.delayReason = 'Purchase order amendment pending customer approval';
+      d.delayCategory = 'MISSING_INFORMATION';
       d.delayReason = 'Purchase order amendment pending customer approval';
       d.confirmationDetails.issues.push({ note: 'Delayed: Purchase order amendment pending customer approval', by: 'Cora Confirm', at: ts(0, 8) });
     },
     hist: [
       ['CONFIRMATION', 'N/A', 'PENDING', 'create', 'Package created at the Confirmation stage (demo)', null, null, 8],
       ['CONFIRMATION', 'PENDING', 'IN_PROGRESS', 'start', 'Confirmation started', 'start', null, 3],
-      ['CONFIRMATION', 'IN_PROGRESS', 'DELAYED', 'delay', 'Delay recorded - Purchase order amendment pending customer approval', 'delay', 'Purchase order amendment pending customer approval', 0],
+      ['CONFIRMATION', 'IN_PROGRESS', 'DELAYED', 'delay', 'Delay recorded - Purchase order amendment pending customer approval', 'delay', 'MISSING_INFORMATION', 0],
     ],
   },
   {
@@ -150,7 +152,9 @@ const SCENARIOS = [
       d.confirmationDetails.status = 'COMPLETED';
       d.packagingDetails.startedAt = ts(4, 9);
       d.packagingDetails.status = 'DELAYED';
+      d.packagingDetails.delayCategory = 'MATERIAL_SHORTAGE';
       d.packagingDetails.delayReason = 'Missing protective foam - supplier ETA slipped twice';
+      d.delayCategory = 'MATERIAL_SHORTAGE';
       d.delayReason = 'Missing protective foam - supplier ETA slipped twice';
       d.packagingDetails.issues.push({ note: 'Missing materials: foam lining backordered', by: 'Pat Packaging', at: ts(2, 10) });
     },
@@ -160,7 +164,7 @@ const SCENARIOS = [
       ['CONFIRMATION', 'IN_PROGRESS', 'COMPLETED', 'complete', 'Confirmation completed (demo)', 'complete', null, 7],
       ['PACKAGING', 'COMPLETED', 'PENDING', 'advance', 'Stage advanced to Packaging (pending)', 'advance', null, 7],
       ['PACKAGING', 'PENDING', 'IN_PROGRESS', 'start', 'Packaging started', 'start', null, 4],
-      ['PACKAGING', 'IN_PROGRESS', 'DELAYED', 'delay', 'Delay recorded - Missing protective foam', 'delay', 'Missing protective foam - supplier ETA slipped twice', 0],
+      ['PACKAGING', 'IN_PROGRESS', 'DELAYED', 'delay', 'Delay recorded - Missing protective foam', 'delay', 'MATERIAL_SHORTAGE', 0],
     ],
   },
   {
@@ -399,8 +403,10 @@ const SCENARIOS = [
       d.dispatchDetails.completedAt = ts(2, 12);
       d.deliveryDetails.startedAt = ts(2, 9);
       d.deliveryDetails.status = 'DELAYED';
+      d.deliveryDetails.delayCategory = 'TRANSPORTER_DELAY';
       d.deliveryDetails.delayReason = 'Flood road closure - carrier re-routing (add 3 days)';
       d.deliveryDetails.expectedDelivery = iso(7);
+      d.delayCategory = 'TRANSPORTER_DELAY';
       d.delayReason = 'Flood road closure - carrier re-routing (add 3 days)';
       d.deliveryDetails.issues.push({ note: 'Delayed: Flood road closure, re-route booked', by: 'Dean Delivery', at: ts(0, 10) });
     },
@@ -417,7 +423,7 @@ const SCENARIOS = [
       ['DOCUMENTATION_DISPATCH', 'COMPLETED', 'COMPLETED', 'complete', 'Dispatch/handover completed (demo)', 'complete', null, 2],
       ['DELIVERY', 'COMPLETED', 'PENDING', 'advance', 'Stage advanced to Delivery (pending)', 'advance', null, 2],
       ['DELIVERY', 'PENDING', 'IN_PROGRESS', 'start', 'Delivery in transit (demo)', 'start', null, 2],
-      ['DELIVERY', 'IN_PROGRESS', 'DELAYED', 'delay', 'Delay recorded - Flood road closure', 'delay', 'Flood road closure - carrier re-routing (add 3 days)', 0],
+      ['DELIVERY', 'IN_PROGRESS', 'DELAYED', 'delay', 'Delay recorded - Flood road closure', 'delay', 'TRANSPORTER_DELAY', 0],
     ],
   },
   {
