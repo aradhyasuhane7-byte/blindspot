@@ -253,7 +253,12 @@ body.app { min-height: 100vh; }
   gap: 14px;
   margin-bottom: 18px;
 }
-.summary-grid > .card { min-width: 0; } /* content must never widen a grid track */
+/* The .card + .card flow spacing rule must never leak into card grids -
+   it added an 18px top margin to every card after the first, shrinking and
+   offsetting them inside their (equal) grid tracks: uneven stat boxes. */
+.summary-grid > .card,
+.workflow-cards > .card,
+.chart-grid > .card { min-width: 0; margin-top: 0; }
 .stat { display: flex; gap: 12px; align-items: center; padding: 18px; min-width: 0; }
 .stat > div { min-width: 0; }
 .stat-dot {
